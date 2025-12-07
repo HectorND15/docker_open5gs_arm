@@ -1,357 +1,3 @@
-# docker_open5gs
-Quite contrary to the name of the repository, this repository contains docker files to deploy an Over-The-Air (OTA) or RF simulated 4G/5G network using following projects:
-- Core Network (4G/5G) - open5gs - https://github.com/open5gs/open5gs
-- IMS (VoLTE + VoNR) - kamailio - https://github.com/kamailio/kamailio
-- IMS HSS - https://github.com/nickvsnetworking/pyhss
-- Osmocom HLR - https://github.com/osmocom/osmo-hlr
-- Osmocom MSC - https://github.com/osmocom/osmo-msc
-- srsRAN_4G (4G eNB + 4G UE + 5G UE) - https://github.com/srsran/srsRAN_4G
-- srsRAN_Project (5G gNB) - https://github.com/srsran/srsRAN_Project
-- UERANSIM (5G gNB + 5G UE) - https://github.com/aligungr/UERANSIM
-- eUPF (5G UPF) - https://github.com/edgecomllc/eupf
-- OpenSIPS IMS - https://github.com/OpenSIPS/opensips
-- Sigscale OCS - https://github.com/sigscale/ocs
-- Osmo-epdg + Strongswan-epdg
-  - https://gitea.osmocom.org/erlang/osmo-epdg
-  - https://gitea.osmocom.org/ims-volte-vowifi/strongswan-epdg
-- SWu-IKEv2 - https://github.com/fasferraz/SWu-IKEv2
-
-## Table of Contents
-
-- [Tested Setup](#tested-setup)
-- [Prepare Docker images](#prepare-docker-images)
-  - [Get Pre-built Docker images](#get-pre-built-docker-images)
-  - [Build Docker images from source](#build-docker-images-from-source)
-- [Network and deployment configuration](#network-and-deployment-configuration)
-  - [Single Host setup configuration](#single-host-setup-configuration)
-  - [Multihost setup configuration](#multihost-setup-configuration)
-    - [4G deployment](#4g-deployment)
-    - [5G SA deployment](#5g-sa-deployment)
-- [Network Deployment](#network-deployment)
-- [Docker Compose files overview](#docker-compose-files-overview)
-- [Provisioning of SIM information](#provisioning-of-sim-information)
-  - [Provisioning of SIM information in open5gs HSS](#provisioning-of-sim-information-in-open5gs-hss-as-follows)
-  - [Provisioning of IMSI and MSISDN with OsmoHLR](#provisioning-of-imsi-and-msisdn-with-osmohlr-as-follows)
-  - [Provisioning of SIM information in pyHSS](#provisioning-of-sim-information-in-pyhss-is-as-follows)
-  - [Provisioning of Diameter Peer + Subscriber information in Sigscale OCS](#provisioning-of-diameter-peer--subscriber-information-in-sigscale-ocs-as-follows-skip-if-ocs-is-not-deployed)
-- [Testing VoWiFi with COTS UE](#testing-vowifi-with-cots-ue)
-  - [Pre-requisites](#pre-requisites)
-  - [Deploy the required components](#deploy-the-required-components)
-  - [Provision SIM and IMS subscriber information](#provision-sim-and-ims-subscriber-information)
-  - [Manually configure DNS settings on your phone (WiFi connection)](#manually-configure-dns-settings-on-your-phone-wifi-connection)
-  - [UE configuration](#ue-configuration)
-- [Not supported](#not-supported)
-
-## Tested Setup
-
-Docker host machine
-
-- Ubuntu 22.04 or above
-
-Over-The-Air setups: 
-
-- srsRAN_Project gNB using Ettus USRP B210
-- srsRAN_Project (5G gNB) using LibreSDR (USRP B210 clone)
-- srsRAN_4G eNB using LimeSDR Mini v1.3
-- srsRAN_4G eNB using LimeSDR-USB
-- srsRAN_4G eNB using LibreSDR (USRP B210 clone)
-
-RF simulated setups:
-
-- srsRAN_4G (eNB + UE) simulation over ZMQ
-- srsRAN_Project (5G gNB) + srsRAN_4G (5G UE) simulation over ZMQ
-- UERANSIM (gNB + UE) simulator
-
-## Prepare Docker images
-
-* Mandatory requirements:
-	* [docker-ce](https://docs.docker.com/install/linux/docker-ce/ubuntu) - Version 22.0.5 or above
-	* [docker compose](https://docs.docker.com/compose) - Version 2.14 or above
-
-You can either pull the pre-built docker images or build them from the source.
-
-### Get Pre-built Docker images
-
-Pull base images:
-```
-docker pull ghcr.io/herlesupreeth/docker_open5gs:master
-docker tag ghcr.io/herlesupreeth/docker_open5gs:master docker_open5gs
-
-docker pull ghcr.io/herlesupreeth/docker_grafana:master
-docker tag ghcr.io/herlesupreeth/docker_grafana:master docker_grafana
-
-docker pull ghcr.io/herlesupreeth/docker_metrics:master
-docker tag ghcr.io/herlesupreeth/docker_metrics:master docker_metrics
-```
-
-You can also pull the pre-built images for additional components
-
-For IMS components:
-```
-docker pull ghcr.io/herlesupreeth/docker_osmohlr:master
-docker tag ghcr.io/herlesupreeth/docker_osmohlr:master docker_osmohlr
-
-docker pull ghcr.io/herlesupreeth/docker_osmomsc:master
-docker tag ghcr.io/herlesupreeth/docker_osmomsc:master docker_osmomsc
-
-docker pull ghcr.io/herlesupreeth/docker_pyhss:master
-docker tag ghcr.io/herlesupreeth/docker_pyhss:master docker_pyhss
-
-docker pull ghcr.io/herlesupreeth/docker_kamailio:master
-docker tag ghcr.io/herlesupreeth/docker_kamailio:master docker_kamailio
-
-docker pull ghcr.io/herlesupreeth/docker_mysql:master
-docker tag ghcr.io/herlesupreeth/docker_mysql:master docker_mysql
-
-docker pull ghcr.io/herlesupreeth/docker_opensips:master
-docker tag ghcr.io/herlesupreeth/docker_opensips:master docker_opensips
-```
-
-For srsRAN components:
-```
-docker pull ghcr.io/herlesupreeth/docker_srslte:master
-docker tag ghcr.io/herlesupreeth/docker_srslte:master docker_srslte
-
-docker pull ghcr.io/herlesupreeth/docker_srsran:master
-docker tag ghcr.io/herlesupreeth/docker_srsran:master docker_srsran
-```
-
-For UERANSIM components:
-```
-docker pull ghcr.io/herlesupreeth/docker_ueransim:master
-docker tag ghcr.io/herlesupreeth/docker_ueransim:master docker_ueransim
-```
-
-For EUPF component:
-```
-docker pull ghcr.io/herlesupreeth/docker_eupf:master
-docker tag ghcr.io/herlesupreeth/docker_eupf:master docker_eupf
-```
-
-For Sigscale OCS component:
-```
-docker pull ghcr.io/herlesupreeth/docker_ocs:master
-docker tag ghcr.io/herlesupreeth/docker_ocs:master docker_ocs
-```
-
-For Osmo-epdg + Strongswan-epdg component:
-```
-docker pull ghcr.io/herlesupreeth/docker_osmoepdg:master
-docker tag ghcr.io/herlesupreeth/docker_osmoepdg:master docker_osmoepdg
-```
-
-For SWu-IKEv2 component:
-```
-docker pull ghcr.io/herlesupreeth/docker_swu_client:master
-docker tag ghcr.io/herlesupreeth/docker_swu_client:master docker_swu_client
-```
-
-### Build Docker images from source
-#### Clone repository and build base docker image of open5gs, kamailio, srsRAN_4G, srsRAN_Project, ueransim
-
-```
-# Build docker image for open5gs EPC/5GC components
-git clone https://github.com/herlesupreeth/docker_open5gs
-cd docker_open5gs/base
-docker build --no-cache --force-rm -t docker_open5gs .
-
-# Build docker image for kamailio IMS components
-cd ../ims_base
-docker build --no-cache --force-rm -t docker_kamailio .
-
-# Build docker image for srsRAN_4G eNB + srsUE (4G+5G)
-cd ../srslte
-docker build --no-cache --force-rm -t docker_srslte .
-
-# Build docker image for srsRAN_Project gNB
-cd ../srsran
-docker build --no-cache --force-rm -t docker_srsran .
-
-# Build docker image for UERANSIM (gNB + UE)
-cd ../ueransim
-docker build --no-cache --force-rm -t docker_ueransim .
-
-# Build docker image for EUPF
-cd ../eupf
-docker build --no-cache --force-rm -t docker_eupf .
-
-# Build docker image for OpenSIPS IMS
-cd ../opensips_ims_base
-docker build --no-cache --force-rm -t docker_opensips .
-
-# Build docker image for Osmo-epdg + Strongswan-epdg
-cd ../osmoepdg
-docker build --no-cache --force-rm -t docker_osmoepdg .
-
-# Build docker image for SWu-IKEv2
-cd ../swu_client
-docker build --no-cache --force-rm -t docker_swu_client .
-```
-
-#### Build docker images for additional components
-
-```
-cd ..
-set -a
-source .env
-set +a
-sudo ufw disable
-sudo sysctl -w net.ipv4.ip_forward=1
-sudo cpupower frequency-set -g performance
-
-# For 4G deployment only
-docker compose -f 4g-volte-deploy.yaml build
-
-# For 5G deployment only
-docker compose -f sa-deploy.yaml build
-```
-
-## Network and deployment configuration
-
-The setup can be mainly deployed in two ways:
-
-1. Single host setup where eNB/gNB and (EPC+IMS)/5GC are deployed on a single host machine
-2. Multi host setup where eNB/gNB is deployed on a separate host machine than (EPC+IMS)/5GC
-
-### Single Host setup configuration
-Edit only the following parameters in **.env** as per your setup
-
-```
-MCC
-MNC
-DOCKER_HOST_IP --> This is the IP address of the host running your docker setup
-UE_IPV4_INTERNET --> Change this to your desired (Not conflicted) UE network ip range for internet APN
-UE_IPV4_IMS --> Change this to your desired (Not conflicted) UE network ip range for ims APN
-```
-
-### Multihost setup configuration
-
-#### 4G deployment
-
-###### On the host running the (EPC+IMS)
-
-Edit only the following parameters in **.env** as per your setup
-```
-MCC
-MNC
-DOCKER_HOST_IP --> This is the IP address of the host running (EPC+IMS)
-SGWU_ADVERTISE_IP --> Change this to value of DOCKER_HOST_IP
-UE_IPV4_INTERNET --> Change this to your desired (Not conflicted) UE network ip range for internet APN
-UE_IPV4_IMS --> Change this to your desired (Not conflicted) UE network ip range for ims APN
-```
-
-Under **mme** section in docker compose file (**4g-volte-deploy.yaml**), uncomment the following part
-```
-...
-    # ports:
-    #   - "36412:36412/sctp"
-...
-```
-
-Then, uncomment the following part under **sgwu** section
-```
-...
-    # ports:
-    #   - "2152:2152/udp"
-...
-```
-
-###### On the host running the eNB
-
-Edit only the following parameters in **.env** as per your setup
-```
-MCC
-MNC
-DOCKER_HOST_IP --> This is the IP address of the host running eNB
-MME_IP --> Change this to IP address of host running (EPC+IMS)
-SRS_ENB_IP --> Change this to the IP address of the host running eNB
-```
-
-Replace the following part in the docker compose file (**srsenb.yaml**)
-```
-    networks:
-      default:
-        ipv4_address: ${SRS_ENB_IP}
-networks:
-  default:
-    external:
-      name: docker_open5gs_default
-```
-with 
-```
-	network_mode: host
-```
-
-#### 5G SA deployment
-
-###### On the host running the 5GC
-
-Edit only the following parameters in **.env** as per your setup
-```
-MCC
-MNC
-DOCKER_HOST_IP --> This is the IP address of the host running 5GC
-UPF_ADVERTISE_IP --> Change this to value of DOCKER_HOST_IP
-UE_IPV4_INTERNET --> Change this to your desired (Not conflicted) UE network ip range for internet APN
-UE_IPV4_IMS --> Change this to your desired (Not conflicted) UE network ip range for ims APN
-```
-
-Under **amf** section in docker compose file (**sa-deploy.yaml**), uncomment the following part
-```
-...
-    # ports:
-    #   - "38412:38412/sctp"
-...
-```
-
-Then, uncomment the following part under **upf** section
-```
-...
-    # ports:
-    #   - "2152:2152/udp"
-...
-```
-
-###### On the host running the gNB
-
-Edit only the following parameters in **.env** as per your setup
-```
-MCC
-MNC
-DOCKER_HOST_IP --> This is the IP address of the host running gNB
-AMF_IP --> Change this to IP address of host running 5GC
-SRS_GNB_IP --> Change this to the IP address of the host running gNB
-```
-
-Replace the following part in the docker compose file (**srsgnb.yaml**)
-```
-    networks:
-      default:
-        ipv4_address: ${SRS_GNB_IP}
-networks:
-  default:
-    external: true
-    name: docker_open5gs_default
-```
-with 
-```
-	network_mode: host
-```
-
-## Network Deployment
-
-###### 4G deployment
-
-```
-# 4G Core Network + IMS + SMS over SGs (uses Kamailio IMS)
-docker compose -f 4g-volte-deploy.yaml up
-
-# 4G Core Network + IMS + SMS over SGs (uses openSIPS IMS)
-docker compose -f 4g-volte-opensips-ims-deploy.yaml up
-
-# srsRAN eNB using SDR (OTA)
-docker compose -f srsenb.yaml up -d && docker container attach srsenb
-
 # Open5GS and srsRAN 5G SA Deployment (Docker)
 
 This repository provides a containerized deployment of a **5G Standalone (SA)** network using **Open5GS** as the Core Network and **srsRAN Project** for the RAN (gNB and UE) with ZMQ simulation.
@@ -365,15 +11,56 @@ This repository provides a containerized deployment of a **5G Standalone (SA)** 
 
 ## Prerequisites
 
-- Linux OS (Ubuntu 22.04 recommended)
+- Linux OS (Ubuntu 22.04 recommended) 
+    - Not tested on other operating systems
 - Docker and Docker Compose
-- AVX2 supported CPU (for srsRAN)
+
+## Prepare Docker Images
+
+You can either pull pre-built images or build them from source.
+
+### Option A: Pull Pre-built Images
+```bash
+# Open5GS and Monitoring
+docker pull ghcr.io/herlesupreeth/docker_open5gs:master
+docker tag ghcr.io/herlesupreeth/docker_open5gs:master docker_open5gs
+
+docker pull ghcr.io/herlesupreeth/docker_grafana:master
+docker tag ghcr.io/herlesupreeth/docker_grafana:master docker_grafana
+
+docker pull ghcr.io/herlesupreeth/docker_metrics:master
+docker tag ghcr.io/herlesupreeth/docker_metrics:master docker_metrics
+
+# srsRAN Components
+docker pull ghcr.io/herlesupreeth/docker_srslte:master
+docker tag ghcr.io/herlesupreeth/docker_srslte:master docker_srslte
+
+docker pull ghcr.io/herlesupreeth/docker_srsran:master
+docker tag ghcr.io/herlesupreeth/docker_srsran:master docker_srsran
+```
+
+### Option B: Build from Source
+```bash
+# Build Open5GS base image
+cd base
+docker build --no-cache --force-rm -t docker_open5gs .
+
+# Build srsRAN 4G (for UE)
+cd ../srslte
+docker build --no-cache --force-rm -t docker_srslte .
+
+# Build srsRAN Project (for gNB)
+cd ../srsran
+docker build --no-cache --force-rm -t docker_srsran .
+
+cd ..
+```
 
 ## Quick Start
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/HectorND15/docker_open5gs_arm
 cd docker_open5gs_arm
 ```
 
@@ -419,7 +106,7 @@ To ensure the UE successfully attaches and connects to the internet:
    - Successful attachment is indicated by `PDU Session Establishment successful` in the UE logs.
    - You can verify internet access by pinging an external IP (e.g., `8.8.8.8`) through this interface.
 
-### 4. Verification
+### 5. Verification
 
 **Check Logs**
 ```bash
@@ -445,4 +132,3 @@ docker exec srsue_5g_zmq ping -I tun_srsue -c 4 8.8.8.8
 - `srslte/`: Configuration for srsUE (4G/5G)
 - `srsran/`: Configuration for srsgNB
 - `*_deploy.yaml`: Docker Compose deployment files
-
