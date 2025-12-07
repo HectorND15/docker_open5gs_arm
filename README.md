@@ -132,3 +132,15 @@ docker exec srsue_5g_zmq ping -I tun_srsue -c 4 8.8.8.8
 - `srslte/`: Configuration for srsUE (4G/5G)
 - `srsran/`: Configuration for srsgNB
 - `*_deploy.yaml`: Docker Compose deployment files
+
+## Acknowledgements
+
+This repository is a simplified fork of [docker_open5gs](https://github.com/herlesupreeth/docker_open5gs) by [Herle Supreeth](https://github.com/herlesupreeth).
+
+The original repository provides a comprehensive suite of Docker files for deploying:
+- **4G/5G Core Networks** (Open5GS)
+- **IMS** (Kamailio, OpenSIPS)
+- **RAN** (srsRAN 4G/5G, UERANSIM)
+- **Monitoring Tools**
+
+This fork focuses specifically on a streamlined **5G Standalone (SA)** deployment for educational and testing purposes on ARM/x86 architectures. We thank the original authors for their extensive work in containerizing these complex network components.
