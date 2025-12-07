@@ -352,263 +352,97 @@ docker compose -f 4g-volte-opensips-ims-deploy.yaml up
 # srsRAN eNB using SDR (OTA)
 docker compose -f srsenb.yaml up -d && docker container attach srsenb
 
-# srsRAN ZMQ eNB (RF simulated)
-docker compose -f srsenb_zmq.yaml up -d && docker container attach srsenb_zmq
+# Open5GS and srsRAN 5G SA Deployment (Docker)
 
-# srsRAN ZMQ 4G UE (RF simulated)
-docker compose -f srsue_zmq.yaml up -d && docker container attach srsue_zmq
+This repository provides a containerized deployment of a **5G Standalone (SA)** network using **Open5GS** as the Core Network and **srsRAN Project** for the RAN (gNB and UE) with ZMQ simulation.
 
-# 4G Core Network + IMS + SMS over SGs (uses Kamailio IMS) + Osmo-epdg + Strongswan-epdg
-docker compose -f 4g-volte--vowifi-deploy.yaml up
+## Architecture
 
-# SWu-IKEv2 (ePDG testing)
-docker compose -f swu_client.yaml up -d && docker container attach swu_client
+- **5G Core**: Open5GS (AMF, SMF, UPF, NRF, UDR, UDM, AUSF, NSSF, BSF, PCF, SCP)
+- **RAN**: srsRAN Project gNB (ZMQ)
+- **UE**: srsRAN Project UE (ZMQ)
+- **Monitoring**: Prometheus and Grafana
+
+## Prerequisites
+
+- Linux OS (Ubuntu 22.04 recommended)
+- Docker and Docker Compose
+- AVX2 supported CPU (for srsRAN)
+
+## Quick Start
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd docker_open5gs_arm
 ```
 
-###### 5G SA deployment
+### 2. Configure Environment
+Check the `.env` file to ensure the IP addresses and subscriber credentials match your requirements.
+- **Subscriber**:
+  - IMSI: `001011234567895`
+  - Key: `8baf473f2f8fd09487cccbd7097c6862`
+  - OP: `11111111111111111111111111111111`
 
+### 3. Deploy the Network
+
+**Step 1: Start the 5G Core**
+```bash
+docker compose -f sa-deploy.yaml up -d
 ```
-# 5G Core Network
-docker compose -f sa-deploy.yaml up
+*Wait for the Core Network components (especially UDR, UDM, AMF) to fully initialize and register with the NRF.*
 
-# srsRAN gNB using SDR (OTA)
-docker compose -f srsgnb.yaml up -d && docker container attach srsgnb
-
-# srsRAN ZMQ gNB (RF simulated)
-docker compose -f srsgnb_zmq.yaml up -d && docker container attach srsgnb_zmq
-
-# srsRAN ZMQ 5G UE (RF simulated)
-docker compose -f srsue_5g_zmq.yaml up -d && docker container attach srsue_5g_zmq
-
-# UERANSIM gNB (RF simulated)
-docker compose -f nr-gnb.yaml up -d && docker container attach nr_gnb
-
-# UERANSIM NR-UE (RF simulated)
-docker compose -f nr-ue.yaml up -d && docker container attach nr_ue
+**Step 2: Start the gNB**
+```bash
+docker compose -f srsgnb_zmq.yaml up -d
 ```
 
-## Docker Compose files overview
-
-This repository provides several Docker Compose files to support different deployment scenarios and components. Below is a summary of the compose files and their purposes:
-
-| Compose File                       | Description                                                                                        |
-|------------------------------------|----------------------------------------------------------------------------------------------------|
-| `4g-volte-deploy.yaml`             | Deploys 4G Core Network (EPC) with IMS (VoLTE) using Kamailio.                                     |
-| `4g-volte-opensips-ims-deploy.yaml`| Deploys 4G Core Network with IMS using OpenSIPS.                                                   |
-| `sa-deploy.yaml`                   | Deploys 5G Standalone (SA) Core Network (5GC).                                                     |
-| `sa-vonr-deploy.yaml`              | Deploys 5G Standalone (SA) Core Network (5GC) with IMS (VoNR) using Kamailio.                      |
-| `srsenb.yaml`                      | Deploys srsRAN 4G eNB for OTA setups using SDR hardware.                                           |
-| `srsenb_zmq.yaml`                  | Deploys srsRAN 4G eNB for RF simulated setups over ZMQ.                                            |
-| `srsue_zmq.yaml`                   | Deploys srsRAN 4G UE for RF simulated setups over ZMQ.                                             |
-| `srsran.yaml`                      | Deploys srsRAN_4G components (eNB/UE).                                                             |
-| `srsgnb.yaml`                      | Deploys srsRAN 5G gNB for OTA setups using SDR hardware.                                           |
-| `srsgnb_zmq.yaml`                  | Deploys srsRAN 5G gNB for RF simulated setups over ZMQ.                                            |
-| `srsue_5g_zmq.yaml`                | Deploys srsRAN 5G UE for RF simulated setups over ZMQ.                                             |
-| `nr-gnb.yaml`                      | Deploys UERANSIM 5G gNB simulator.                                                                 |
-| `nr-ue.yaml`                       | Deploys UERANSIM 5G UE simulator.                                                                  |
-| `4g-volte-ocs-deploy.yaml`         | Deploys 4G Core Network (EPC) + Sigscale OCS with IMS (VoLTE) using Kamailio.                      |
-| `4g-external-ims-deploy.yaml`      | Deploys 4G Core Network (EPC) + Sigscale OCS + PyHSS (IMS) with no IMS components.                 |
-| `4g-volte-vowifi-deploy.yaml`      | Deploys 4G Core Network (EPC) + Osmocom EPDG with IMS (VoLTE/VoWiFi) using Kamailio.               |
-| `swu_client.yaml`                  | Deploys SWu-IKEv2 client for ePDG testing.                                                         |
-| `sa-vonr-ibcf-deploy.yaml`         | Deploys 5G Standalone (SA) Core Network (5GC) + IMS (VoNR) using Kamailio + IBCF.                  |
-| `sa-vonr-opensips-ims-deploy.yaml` | Deploys 5G Standalone (SA) Core Network (5GC) with IMS (VoNR) using OpenSIPS (Experimental).       |
-| `oaienb.yaml`                      | Deploys OAI eNB for OTA setups using SDR hardware (Untested and Unmaintained).                     |
-| `oaignb.yaml`                      | Deploys OAI 5G gNB for OTA setups using SDR hardware (Untested and Unmaintained).                  |
-
-## Provisioning of SIM information
-
-### Provisioning of SIM information in open5gs HSS as follows:
-
-Open (http://<DOCKER_HOST_IP>:9999) in a web browser, where <DOCKER_HOST_IP> is the IP of the machine/VM running the open5gs containers. Login with following credentials
-```
-Username : admin
-Password : 1423
+**Step 3: Start the UE**
+```bash
+docker compose -f srsue_5g_zmq.yaml up -d
 ```
 
-Using Web UI, add a subscriber with following details:
+### 4. Troubleshooting & Success Factors
 
-```
-IMSI : <SIM_IMSI> (e.g. 001010123456790)
-MSISDN : <DESIRED_MSISDN> (e.g. 9076543210)
-AMF : 8000
-K : <SIM_K> (e.g. 8baf473f2f8fd09487cccbd7097c6862)
-OPC : <SIM_OPC> (e.g. 8E27B6AF0E692E750F32667A3B14605D)
+To ensure the UE successfully attaches and connects to the internet:
 
-APN Configuration:
----------------------------------------------------------------------------------------------------------------------
-| APN      | Type | QCI | ARP | Capability | Vulnerablility | MBR DL/UL(Kbps)     | GBR DL/UL(Kbps) | PGW IP        |
----------------------------------------------------------------------------------------------------------------------
-| internet | IPv4 | 9   | 8   | Disabled   | Disabled       | unlimited/unlimited |                 |               |
-|          |      | 1   | 2   | Enabled    | Enabled        | 128/128             | 128/128         |               |
-|          |      | 2   | 4   | Enabled    | Enabled        | 128/128             | 128/128         |               |
----------------------------------------------------------------------------------------------------------------------
-| ims      | IPv4 | 5   | 1   | Disabled   | Disabled       | 3850/1530           |                 |               |
-|          |      | 1   | 2   | Enabled    | Enabled        | 128/128             | 128/128         |               |
-|          |      | 2   | 4   | Enabled    | Enabled        | 128/128             | 128/128         |               |
----------------------------------------------------------------------------------------------------------------------
-```
+1. **Strict Startup Order**:
+   - The **5G Core** must be fully initialized before starting the RAN. If the AMF/UDM/UDR are not ready, the UE registration will fail with "Unknown UE" or "Gateway Timeout".
+   - The **gNB** must be started before the **UE** to establish the ZMQ connection correctly.
 
-#### or using cli 
+2. **Subscriber Provisioning**:
+   - The subscriber with IMSI `001011234567895` is pre-provisioned in the MongoDB. Ensure your `.env` file matches these credentials.
+   - If you see "Unknown UE by SUCI", check the AMF logs. If the Core was just started, it might be a race condition—restart the UE.
 
-```
-sudo docker exec -it hss misc/db/open5gs-dbctl add 001010123456790 8baf473f2f8fd09487cccbd7097c6862 8E27B6AF0E692E750F32667A3B14605D
-```
-**NOTE:** Adding via CLI does not add the desired APN configuration. You need to add the APN configuration via Web UI as mentioned above.
+3. **Internet Access**:
+   - The UE creates a tunnel interface (`tun_srsue`).
+   - Successful attachment is indicated by `PDU Session Establishment successful` in the UE logs.
+   - You can verify internet access by pinging an external IP (e.g., `8.8.8.8`) through this interface.
 
-### Provisioning of IMSI and MSISDN with OsmoHLR as follows:
+### 4. Verification
 
-1. First, telnet to OsmoHLR from host machine using the following command:
-
-```
-$ telnet 172.22.0.32 4258
-
-OsmoHLR> enable
-OsmoHLR#
+**Check Logs**
+```bash
+docker logs -f amf
+docker logs -f srsgnb_zmq
+docker logs -f srsue_5g_zmq
 ```
 
-2. Then, register the subscriber information as in following example:
-
-```
-OsmoHLR# subscriber imsi 001010123456790 create
-OsmoHLR# subscriber imsi 001010123456790 update msisdn 9076543210
-```
-
-**Replace IMSI and MSISDN as per your programmed SIM**
-
-
-### Provisioning of SIM information in pyHSS is as follows:
-
-1. Goto http://<DOCKER_HOST_IP>:8080/docs/
-2. Select **apn** -> **Create new APN** -> Press on **Try it out**. Then, in payload section use the below JSON and then press **Execute**
-
-```
-{
-  "apn": "internet",
-  "apn_ambr_dl": 0,
-  "apn_ambr_ul": 0
-}
+**Test Connectivity**
+Ping the UPF or external network from the UE container:
+```bash
+docker exec srsue_5g_zmq ping -I tun_srsue -c 4 8.8.8.8
 ```
 
-Take note of **apn_id** specified in **Response body** under **Server response** for **internet** APN
+## Accessing Interfaces
 
-Repeat creation step for following payload
+- **Open5GS WebUI**: http://<DOCKER_HOST_IP>:9999 (admin / 1423)
+- **Grafana**: http://<DOCKER_HOST_IP>:3000 (admin / admin)
 
-```
-{
-  "apn": "ims",
-  "apn_ambr_dl": 0,
-  "apn_ambr_ul": 0
-}
-```
+## Directory Structure
 
-Take note of **apn_id** specified in **Response body** under **Server response** for **ims** APN
+- `base/`: Dockerfiles for base images
+- `srslte/`: Configuration for srsUE (4G/5G)
+- `srsran/`: Configuration for srsgNB
+- `*_deploy.yaml`: Docker Compose deployment files
 
-**Execute this step of APN creation only once**
-
-3. Next, select **auc** -> **Create new AUC** -> Press on **Try it out**. Then, in payload section use the below example JSON to fill in ki, opc and amf for your SIM and then press **Execute**
-
-```
-{
-  "ki": "8baf473f2f8fd09487cccbd7097c6862",
-  "opc": "8E27B6AF0E692E750F32667A3B14605D",
-  "amf": "8000",
-  "sqn": 0,
-  "imsi": "001010123456790"
-}
-```
-
-Take note of **auc_id** specified in **Response body** under **Server response**
-
-**Replace imsi, ki, opc and amf as per your programmed SIM**
-
-4. Next, select **subscriber** -> **Create new SUBSCRIBER** -> Press on **Try it out**. Then, in payload section use the below example JSON to fill in imsi, auc_id and apn_list for your SIM and then press **Execute**
-
-```
-{
-  "imsi": "001010123456790",
-  "enabled": true,
-  "auc_id": 1,
-  "default_apn": 1,
-  "apn_list": "1,2",
-  "msisdn": "9076543210",
-  "ue_ambr_dl": 0,
-  "ue_ambr_ul": 0
-}
-```
-
-- **auc_id** is the ID of the **AUC** created in the previous steps
-- **default_apn** is the ID of the **internet** APN created in the previous steps
-- **apn_list** is the comma separated list of APN IDs allowed for the UE i.e. APN ID for **internet** and **ims** APN created in the previous steps
-
-**Replace imsi and msisdn as per your programmed SIM**
-
-5. Finally, select **ims_subscriber** -> **Create new IMS SUBSCRIBER** -> Press on **Try it out**. Then, in payload section use the below example JSON to fill in imsi, msisdn, msisdn_list, scscf_peer, scscf_realm and scscf for your SIM/deployment and then press **Execute**
-
-```
-{
-    "imsi": "001010123456790",
-    "msisdn": "9076543210",
-    "sh_profile": "string",
-    "scscf_peer": "scscf.ims.mnc001.mcc001.3gppnetwork.org",
-    "msisdn_list": "[9076543210]",
-    "ifc_path": "default_ifc.xml",
-    "scscf": "sip:scscf.ims.mnc001.mcc001.3gppnetwork.org:6060",
-    "scscf_realm": "ims.mnc001.mcc001.3gppnetwork.org"
-}
-```
-
-**Replace imsi, msisdn and msisdn_list as per your programmed SIM**
-
-**Replace scscf_peer, scscf and scscf_realm as per your deployment**
-
-### Provisioning of Diameter Peer + Subscriber information in Sigscale OCS as follows (Skip if OCS is not deployed):
-
-1. Goto http://<DOCKER_HOST_IP>:8083
-2. Login with following credentials
-```
-Username : admin
-Password : admin
-```
-3. Configure SMF as Diameter Peer as mentioned here - https://sigscale.atlassian.net/wiki/spaces/SO/pages/3833890/How-To+with+OCS#Add-an-DIAMETER-client-(DRA%2FSGSN%2FPGW)
-
-    **NOTE:** IP address must be equal to **SMF_IP** in **.env** file and the Protocol must be set to Diameter.
-
-4. Subscriber information can be provisioned as mentioned here - https://sigscale.atlassian.net/wiki/spaces/SO/pages/3833890/How-To+with+OCS#Add-a-subscriber
-
-    **NOTE:** The IMSI and the MSISDN must be equal to the one provisioned in open5gs HSS and/or pyHSS.
-
-## Testing VoWiFi with COTS UE
-
-#### Pre-requisites
-  - Set DOCKER_HOST_IP to the IP of the host machine where docker_open5gs is deployed.
-
-#### Deploy the required components
-  Ensure you have the following services running:
-  - 4G Core Network (EPC)
-  - IMS (Kamailio or OpenSIPS)
-  - Osmo-ePDG and Strongswan-ePDG
-
-  Start the VoWiFi-enabled deployment using:
-  ```
-  docker compose -f 4g-volte-vowifi-deploy.yaml up
-  ```
-
-#### Provision SIM and IMS subscriber information
-  - Add subscriber details in open5gs HSS or pyHSS as described in the provisioning sections above.
-  - Ensure the IMSI, MSISDN, and authentication keys match those programmed on your SIM.
-
-#### Manually configure DNS settings on your phone (WiFi connection)
-  - On your phone, go to the WiFi settings and select the network you are connected to.
-  - Edit the network settings and look for the DNS configuration option (may be under "Advanced" or "IP settings").
-    - On Android devices, switch from DHCP to Static IP configuration to manually set DNS.
-    - On iOS devices, you can directly set the DNS server.
-  - Set the DNS server to point to DOCKER_HOST_IP.
-  - Save the settings and reconnect to the WiFi network.
-
-  **Tip:** Proper DNS resolution is required for the UE to locate and register with IMS and ePDG services.
-
-#### UE configuration
-  - On your UE (User Equipment), ensure VoWiFi (WiFi calling) is enabled.
-
-## Not supported
-- IPv6 usage in Docker
