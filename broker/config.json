@@ -1,0 +1,16 @@
+{
+  "samp_rate": 11520000,
+  "zmq_timeout": 100,
+  "zmq_hwm": -1,
+  "bind_host": "0.0.0.0",
+  "peer_host": "rf-broker",
+  "gnbs": [
+    {
+      "id": 1,
+      "ues": [
+        { "id": 1, "path_loss_db": 0 },
+        { "id": 2, "path_loss_db": 0 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+services:
+  rf-broker:
+    build:
+      context: .
+      dockerfile: broker/Dockerfile
+    container_name: rf-broker
+    volumes:
+      - ./broker:/app
+    command:
+      [
+        "--config",
+        "/app/config.json",
+        "--bind",
+        "0.0.0.0",
+        "--peer",
+        "rf-broker",
+      ]
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "2000-2999:2000-2999/tcp"
+    networks:
+      - docker_open5gs_default
+
+networks:
+  docker_open5gs_default:
+    external: true
